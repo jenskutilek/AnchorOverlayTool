@@ -1,0 +1,630 @@
+## Anchor Overlay
+## An extension for the RoboFont editor
+## Requires RoboFont 1.4
+## Version 0.1 by Jens Kutilek 2013-01-04
+## Development has been partly sponsored by FontShop International GmbH
+## http://www.fontfont.com/
+
+import vanilla
+
+from AppKit import NSColor
+
+from defconAppKit.windows.baseWindow import BaseWindowController
+
+from mojo.events import addObserver, removeObserver
+from mojo.drawingTools import *
+from fontTools.pens.basePen import BasePen
+from fontTools.pens.transformPen import TransformPen
+from fontTools.misc.transform import Offset
+from mojo.UI import UpdateCurrentGlyphView, CurrentGlyphWindow, setGlyphViewDisplaySettings, getGlyphViewDisplaySettings
+#from mojo.glyphPreview import GlyphPreview
+from mojo.extensions import getExtensionDefault, setExtensionDefault
+
+from lib.tools.drawing import strokePixelPath
+
+# tool
+from mojo.events import BaseEventTool, installTool
+
+extensionID = "com.fontfont.anchorOverlay"
+
+def roundCoordinates(coordinatesTuple):
+    return (int(round(coordinatesTuple[0])), int(round(coordinatesTuple[1])))
+
+
+class MojoDrawingToolsPen(BasePen):
+    def __init__(self, g, f):
+        BasePen.__init__(self, None)
+        self.g = g
+        self.glyphSet = f
+        self.__currentPoint = None
+        newPath()
+    
+    def _moveTo(self, pt):
+        moveTo(pt)
+    
+    def _lineTo(self, pt):
+        lineTo(pt)
+    
+    def _curveToOne(self, pt1, pt2, pt3):
+        curveTo(pt1, pt2, pt3)
+    
+    def _closePath(self):
+        closePath()
+    
+    def _endPath(self):
+        closePath()
+    
+    def draw(self):
+        drawPath()
+    
+    def addComponent(self, baseName, transformation):
+        glyph = self.glyphSet[baseName]
+        tPen = TransformPen(self, transformation)
+        glyph.draw(tPen)
+
+
+class FontAnchors(object):
+    
+    anchorNames = []
+    anchorGlyphs = {}
+    anchorPositions = {}
+    invisibleAnchors = []
+    invisibleGlyphs = []
+    invisibleMarks = []
+    
+    hideLists = {
+        "anchor": invisibleAnchors,
+        "glyph": invisibleGlyphs,
+        "mark": invisibleMarks,
+    }
+    
+    def __init__(self, font):
+        self.font = font
+        self._readFromFont(self.font)
+        self.hideLists = getExtensionDefault("%s.%s" %(extensionID, "hide"), self.hideLists)
+        
+    def _readFromFont(self, font):
+        self.anchorNames = []
+        self.anchorGlyphs = {}
+        self.anchorPositions = {}
+        
+        if font is not None:
+            for g in font:
+                if len(g.anchors) > 0:
+                    for a in g.anchors:
+                        self.addAnchor(g, a.name, (a.x, a.y))
+            #for a in sorted(self.anchorBaseMap.keys()):
+            #    self.anchorNames.append({"Show": True, "Name": a})
+            #print "\nanchorGlyphs:", self.anchorGlyphs
+            #print "\nanchorPositions:", self.anchorPositions
+            #print
+    
+    def getVisibility(self, kind, name, includeMatching=True):
+        hideList = self.hideLists[kind]
+        if not(name in hideList or (includeMatching and self.getMatchingAnchorName(name) in hideList)):
+            return True
+        return False
+    
+    def setVisibility(self, kind, name, isVisible=True, includeMatching=True):
+        hideList = self.hideLists[kind]
+        if isVisible:
+            if name in hideList:
+                hideList.remove(name)
+                if includeMatching:
+                    hideList.remove(self.getMatchingAnchorName(name))
+        else:
+            if not(name in hideList):
+                hideList.append(name)
+                if includeMatching:
+                    hideList.append(self.getMatchingAnchorName(name))
+    
+    def addAnchor(self, glyph, name, position, addToGlyph=False):
+        if len(name) == 0:
+            print "WARNING: anchor with empty name at (%i, %i) in glyph '%s', ignored." % (position[0], position[1], glyph.name)
+        else:
+            if (glyph.name, name) in self.anchorPositions.keys():
+                print "WARNING: Duplicate anchor name '%s' requested in glyph '%s' when trying to add anchor. Ignored." % (name, glyph.name)
+            else:
+                self.anchorPositions[(glyph.name, name)] = position
+                if name in self.anchorGlyphs.keys():
+                    self.anchorGlyphs[name] += [glyph.name]
+                else:
+                    self.anchorGlyphs[name] = [glyph.name]
+                if addToGlyph:
+                    glyph.appendAnchor(name, position)
+        
+    
+    def moveAnchor(self, name, newPosition):
+        # happens automatically - why?
+        # probably only for current glyph, not "inverted" view
+        pass
+    
+    def renameAnchor(self, name):
+        pass
+    
+    def deleteAnchor(self, name):
+        pass
+    
+    def getMatchingAnchorName(self, name):
+        # returns "inverted" anchor name, i.e. with leading underscore added or removed
+        if name[0] == "_":
+            return name[1:]
+        else:
+            return "_" + name
+    
+    def getAnchorNames(self):
+        # TODO: anchorNames should not be constructed each time this method is called.
+        # Better to build it once and modify it together with other anchor modifications
+        anchorNames = []
+        for a in sorted(self.anchorGlyphs.keys()):
+            if len(a) > 0:
+                if a[0] != "_":
+                    anchorNames.append({"Show": self.getVisibility("anchor", a, False), "Name": a})
+        return anchorNames
+    
+    def getAnchoredGlyphNames(self, anchorName):
+        #print "Looking up anchored glyphs for", anchorName
+        targetAnchorName = self.getMatchingAnchorName(anchorName)
+        if targetAnchorName in self.anchorGlyphs.keys():
+            return self.anchorGlyphs[targetAnchorName]
+        return []
+    
+    def getAnchoredGlyphNamesForList(self, anchorNames, marks=False):
+        anchoredGlyphs = []
+        for an in anchorNames:
+            if marks:
+                an = self.getMatchingAnchorName(an)
+            if an in self.anchorGlyphs.keys():
+                anchoredGlyphs += (self.anchorGlyphs[an])
+        result = []
+        #print "anchoredGlyphs:", anchoredGlyphs
+        for g in sorted(set(anchoredGlyphs)):
+            if marks:
+                result.append({"Show": self.getVisibility("mark", g, False), "Name": g})
+            else:
+                result.append({"Show": self.getVisibility("glyph", g, False), "Name": g})
+        return result
+
+
+class AnchorOverlay(BaseWindowController):
+    
+    def __init__(self):
+        self.fontAnchors = FontAnchors(CurrentFont())
+        self.showPreview = getExtensionDefault("%s.%s" %(extensionID, "preview"), True)
+        
+        columnDescriptions = [
+            {"title": "Show",
+            "cell": vanilla.CheckBoxListCell(),
+            "width": 35},
+            {"title": "Name",
+            "typingSensitive": True,
+            "editable": False},
+        ]
+        
+        self.w = vanilla.FloatingWindow((330, 490), "Anchor Overlay", closable=False)
+        
+        y = 10
+        self.w.showAnchors_label = vanilla.TextBox((10, y, -10, 20), "Show parts for these anchors:", sizeStyle="small")
+        y += 25
+        self.w.showAnchors = vanilla.List((10, y, -10, 150),
+            self.fontAnchors.getAnchorNames(),
+            columnDescriptions=columnDescriptions,
+            drawFocusRing=True,
+            editCallback=self.updateAnchorVisibility,
+            selectionCallback=self.updateAnchoredGlyphsList,
+            )
+        y += 160
+        self.w.baseAnchors_label = vanilla.TextBox((10, y, 150, 20), "Show base glyphs:", sizeStyle="small")
+        self.w.markAnchors_label = vanilla.TextBox((170, y, 150, 20), "Show mark glyphs:", sizeStyle="small")
+        y += 25
+        self.w.baseAnchors = vanilla.List((10, y, 150, 180),
+            [], #self.fontAnchors.anchorGlyphs.keys(),
+            drawFocusRing=True,
+            columnDescriptions=columnDescriptions,
+            editCallback=self.updateGlyphVisibility,
+            doubleClickCallback=self.gotoGlyph,
+            allowsMultipleSelection=False,
+            allowsEmptySelection=False,
+        )
+        self.w.markAnchors = vanilla.List((170, y, 150, 180),
+            [], #self.fontAnchors.anchorGlyphs.keys(),
+            columnDescriptions=columnDescriptions,
+            editCallback=self.updateMarkVisibility,
+            doubleClickCallback=self.gotoGlyph,
+            allowsMultipleSelection=False,
+            allowsEmptySelection=False,
+        )
+        y += 188
+        self.w.drawPreview = vanilla.CheckBox((10, y, -10, -10), "Show in preview mode",
+            callback=self.setShowPreview,
+            value=self.showPreview,
+            sizeStyle="small"
+        )
+        
+        self.w.displayAnchors = vanilla.CheckBox((10, y+25, -10, -10), "Show anchors",
+            callback=self.setShowAnchors,
+            value=getGlyphViewDisplaySettings()["Anchors"],
+            sizeStyle="small"
+        )
+        
+        y += 2
+        self.w.alignAnchors_label = vanilla.TextBox((170, y, -10, -10), "Align selected anchors:", sizeStyle="small")
+        
+        y += 21
+        self.w.centerXButton = vanilla.Button((170, y , 72, 25), "Points X",
+            callback=self.centerAnchorX,
+            sizeStyle="small",
+        )
+        self.w.centerYButton = vanilla.Button((248, y , 72, 25), "Points Y",
+            callback=self.centerAnchorY,
+            sizeStyle="small",
+        )
+        
+        y += 26
+        self.w.baselineButton = vanilla.Button((170, y , 46, 25), "base",
+            callback=self.moveAnchorBaseline,
+            sizeStyle="small",
+        )
+        self.w.xheightButton = vanilla.Button((222, y , 46, 25), "x",
+            callback=self.moveAnchorXheight,
+            sizeStyle="small",
+        )
+        self.w.capheightButton = vanilla.Button((274, y , 46, 25), "cap",
+            callback=self.moveAnchorCapheight,
+            sizeStyle="small",
+        )
+        
+        self.setUpBaseWindowBehavior()
+        self.addObservers()
+        
+        #self.updateAnchoredGlyphsList()
+        if CurrentGlyph():
+            self.drawAnchoredGlyphs(CurrentGlyph())
+        self.w.showAnchors.setSelection([])
+        self.w.open()
+    
+    # Observers
+    
+    def addObservers(self):
+        addObserver(self, "glyphChanged", "draw")
+        addObserver(self, "glyphChangedPreview", "drawPreview")
+        addObserver(self, "glyphChanged", "drawInactive")
+    
+    def removeObservers(self):
+        removeObserver(self, "draw")
+        removeObserver(self, "drawPreview")
+        removeObserver(self, "drawInactive")
+    
+    # Callbacks
+    
+    def updateAnchorVisibility(self, sender=None, glyph=None):
+        for anchor in sender.get():
+            #self.fontAnchors.setAnchorVisibility(anchor["Name"], anchor["Show"])
+            self.fontAnchors.setVisibility("anchor", anchor["Name"], anchor["Show"])
+        UpdateCurrentGlyphView()
+    
+    def updateGlyphVisibility(self, sender=None, glyph=None):
+        for g in sender.get():
+            self.fontAnchors.setVisibility("glyph", g["Name"], g["Show"], False)
+        UpdateCurrentGlyphView()
+        
+    def updateMarkVisibility(self, sender=None, glyph=None):
+        for g in sender.get():
+            self.fontAnchors.setVisibility("mark", g["Name"], g["Show"], False)
+        UpdateCurrentGlyphView()
+        
+    def updateAnchoredGlyphsList(self, sender=None, glyph=None):
+        selectedAnchorNames = []
+        for i in sender.getSelection():
+            selectedAnchorNames.append(self.fontAnchors.getAnchorNames()[i]["Name"])
+        self.w.baseAnchors.set(self.fontAnchors.getAnchoredGlyphNamesForList(selectedAnchorNames))
+        self.w.markAnchors.set(self.fontAnchors.getAnchoredGlyphNamesForList(selectedAnchorNames, marks=True))
+    
+    def gotoGlyph(self, sender=None, glyph=None):
+        newGlyphName = sender.get()[sender.getSelection()[0]]["Name"]
+        #print "Goto Glyph:", newGlyphName
+        CurrentGlyphWindow().setGlyphByName(newGlyphName)
+    
+    def setShowPreview(self, sender=None, glyph=None):
+        self.showPreview = sender.get()
+    
+    def setShowAnchors(self, sender=None, glyph=None):
+        showAnchors = sender.get()
+        setGlyphViewDisplaySettings({"Anchors": showAnchors})
+    
+    # Drawing helpers
+    
+    def setStroke(self, value=.5):
+        strokeWidth(value)
+    
+    def setFill(self, rgba=(.2, 0, .2, .2)):
+        r, g, b, a = rgba
+        fill(r, g, b, a)
+    
+    ## Stuff for anchor alignment buttons
+    
+    def _getBBox(self, pointList):
+        minX = None
+        maxX = None
+        minY = None
+        maxY = None
+        for p in pointList:
+            if p.x < minX or minX is None:
+                minX = p.x
+            if p.x > maxX or maxX is None:
+                maxX = p.x
+            if p.y < minY or minY is None:
+                minY = p.y
+            if p.y > maxY or maxY is None:
+                maxY = p.y
+        return ((minX, minY), (maxX, maxY))
+    
+    def _getReferencePoint(self, glyph):
+        # calculate a reference point for anchor adjustments
+        if len(glyph.selection) == 0:
+            # no points selected, place anchor at glyph width or cap height center
+            # TODO: x-height for lowercase?
+            #print "Ref: metrics"
+            return roundCoordinates((glyph.width / 2, self.fontAnchors.font.info.capHeight / 2))
+        elif len(glyph.selection) == 1:
+            # one point is selected, return same
+            #print "Ref: point"
+            return roundCoordinates((glyph.selection[0].x, glyph.selection[0].y))
+        else:
+            # more points are selected, find min/max and return center.
+            #print "Ref: bbox"
+            ((minX, minY), (maxX, maxY)) = self._getBBox(glyph.selection)
+            return roundCoordinates(((minX + maxX)/2, (minY + maxY)/2))
+    
+    # Align anchors based on selection
+    
+    def centerAnchorX(self, sender=None, glyph=None):
+        g = CurrentGlyph()
+        g.prepareUndo(undoTitle="h-align anchors in /%s" % g.name)
+        p = self._getReferencePoint(g)
+        for a in g.anchors:
+            if a.selected:
+                a.x = p[0]
+        g.performUndo()
+    
+    def centerAnchorY(self, sender=None, glyph=None):
+        g = CurrentGlyph()
+        g.prepareUndo(undoTitle="v-align anchors in /%s" % g.name)
+        p = self._getReferencePoint(g)
+        for a in g.anchors:
+            if a.selected:
+                a.y = p[1]
+        g.performUndo()
+    
+    def addAnchorAndUpdateList(self, glyph, name, position):
+        self.fontAnchors.addAnchor(glyph, name, position, addToGlyph=True)
+        self.w.showAnchors.set(self.fontAnchors.getAnchorNames())
+    
+    # Align anchors based on metrics
+    
+    def moveAnchorBaseline(self, sender=None, glyph=None):
+        g = CurrentGlyph()
+        g.prepareUndo(undoTitle="align anchors to baseline in /%s" % g.name)
+        for a in g.anchors:
+            if a.selected:
+                a.y = 0
+        g.performUndo()
+    
+    def moveAnchorXheight(self, sender=None, glyph=None):
+        g = CurrentGlyph()
+        g.prepareUndo(undoTitle="align anchors to x-height in /%s" % g.name)
+        y = self.fontAnchors.font.info.xHeight
+        for a in g.anchors:
+            if a.selected:
+                a.y = y
+        g.performUndo()
+    
+    def moveAnchorCapheight(self, sender=None, glyph=None):
+        g = CurrentGlyph()
+        g.prepareUndo(undoTitle="align anchors to cap height in /%s" % g.name)
+        y = self.fontAnchors.font.info.capHeight
+        for a in g.anchors:
+            if a.selected:
+                a.y = y
+        g.performUndo()
+    
+    def glyphChanged(self, info):
+        g = info["glyph"]
+        if g is not None:
+            if len(g.anchors) > 0:
+                self.drawAnchoredGlyphs(g)
+    
+    def glyphChangedPreview(self, info):
+        g = info["glyph"]
+        if (g is not None) and self.showPreview:
+            if len(g.anchors) > 0:
+                self.drawAnchoredGlyphs(g, preview=True)
+    
+    def drawAnchoredGlyphs(self, glyph, preview=False):
+        self.setStroke(0)
+        if preview:
+            self.setFill((0, 0, 0, 1))
+        else:
+            self.setFill()
+        
+        for a in glyph.anchors:
+            if self.fontAnchors.getVisibility("anchor", a.name):
+                glyphsToDraw = self.fontAnchors.getAnchoredGlyphNames(a.name)
+                # get translation for base anchor
+                db = (a.x, a.y)
+                g = RGlyph()
+                for gn in glyphsToDraw:
+                    if (a.name[0] != "_" and self.fontAnchors.getVisibility("mark", gn, False)) or (a.name[0] == "_" and self.fontAnchors.getVisibility("glyph", gn, False)):
+                        # get translation for current mark anchor
+                        dm = self.fontAnchors.anchorPositions[gn, self.fontAnchors.getMatchingAnchorName(a.name)]
+                        #d = (db[0] - dm[0], db[1] - dm[1])
+                        mPen = MojoDrawingToolsPen(g, CurrentFont())
+                        mPen.addComponent(gn, Offset(db[0] - dm[0], db[1] - dm[1]))
+                        g.draw(mPen)
+                        mPen.draw()
+        UpdateCurrentGlyphView()
+            
+    
+    def windowCloseCallback(self, sender):
+        self.removeObservers()
+        setExtensionDefault("%s.%s" % (extensionID, "hide"), self.fontAnchors.hideLists)
+        setExtensionDefault("%s.%s" % (extensionID, "preview"), self.showPreview)
+        super(AnchorOverlay, self).windowCloseCallback(sender)
+        UpdateCurrentGlyphView()
+
+
+
+from AppKit import NSImage
+from os.path import join, dirname, isfile
+from fontTools.misc.arrayTools import pointInRect
+
+iconpath = join(dirname(__file__), "toolbarToolsAnchor.pdf")
+
+if isfile(iconpath):
+    toolbarIcon = NSImage.alloc().initByReferencingFile_(iconpath)
+else:
+    toolbarIcon = None
+    print "Warning: Toolbar icon not found: <%s>" % iconpath
+
+class AnchorTool(BaseEventTool):
+    
+    def setup(self):
+        self.pStart = None
+        self.pEnd = None
+    
+    def getToolbarIcon(self):
+        return toolbarIcon
+    
+    def getToolbarTip(self):
+        return "Anchor Tool"
+    
+    def becomeActive(self):
+        self.anchorOverlayUI = AnchorOverlay()
+    
+    def becomeInactive(self):
+        self.anchorOverlayUI.windowCloseCallback(None)
+        self.anchorOverlayUI.w.close()
+    
+    def keyDown(self, event):
+        # align via key commands
+        c = event.characters()
+        if c == "X":
+            self.anchorOverlayUI.centerAnchorX()
+        elif c == "Y":
+            self.anchorOverlayUI.centerAnchorY()
+        # move anchors with arrow keys
+        # default increment is 10 units, hold down shift for 5, option for 1 (like in Metrics Machine)
+        if self.shiftDown:
+            inc = 5
+        elif self.optionDown:
+            inc = 1
+        else:
+            inc = 10
+        if self.arrowKeysDown["up"]:
+            d = (0, inc)
+        elif self.arrowKeysDown["down"]:
+            d = (0, -inc)
+        elif self.arrowKeysDown["left"]:
+            d = (-inc, 0)
+        elif self.arrowKeysDown["right"]:
+            d = (inc, 0)
+        else:
+            d = (0, 0)
+        if d != (0, 0):
+            #d = roundCoordinates(d)
+            g = CurrentGlyph()
+            g.prepareUndo(undoTitle="Move anchors in /%s" % g.name)
+            for a in g.anchors:
+                if a.selected:
+                    a.x = int(round(a.x)) + d[0]
+                    a.y = int(round(a.y)) + d[1]
+            g.performUndo()
+    
+    def _guessAnchorName(self, glyph, p):
+        if p.x <= glyph.width/3:
+            horizontal = "Left"
+        elif p.x >= glyph.width * 2/3:
+            horizontal = "Right"
+        else:
+            horizontal = ""
+        if p.y <= glyph.box[2]/3:
+            vertical = "bottom"
+        elif p.y >= glyph.box[2] * 2/3:
+            vertical = "top"
+        else:
+            vertical = "center"
+        name = vertical + horizontal
+        if (glyph.name, name) in self.anchorOverlayUI.fontAnchors.anchorPositions.keys():
+            name += "Attach"
+        return name
+    
+    def _newAnchor(self, p):
+        # Add an anchor at position p
+        g = CurrentGlyph()
+        newAnchorName = self._guessAnchorName(g, p)
+        g.prepareUndo(undoTitle="Add anchor %s to /%s" % (newAnchorName, g.name))
+        self.anchorOverlayUI.addAnchorAndUpdateList(g, newAnchorName, (p.x, p.y))
+        g.performUndo()
+    
+    def _normalizeBox(self, p0, p1):
+        # normalize selection rectangle so it is always positive
+        return (min(p0.x, p1.x), min(p0.y, p1.y), max(p0.x, p1.x), max(p0.y, p1.y))
+    
+    def _getSelectedPoints(self):
+        if self.pStart and self.pEnd:
+            box = self._normalizeBox(self.pStart, self.pEnd)
+            for anchor in CurrentGlyph().anchors:
+                if pointInRect((anchor.x, anchor.y), box):
+                    anchor.selected = True
+                else:
+                    if not(self.shiftDown):
+                        anchor.selected = False
+            for contour in CurrentGlyph():
+                for s in contour.segments:
+                    if pointInRect((s.points[-1].x, s.points[-1].y), box):
+                        s.points[-1].selected = True
+                    else:
+                        if not(self.shiftDown):
+                            s.points[-1].selected = False
+    
+    def mouseDown(self, point, clickCount):
+        if not(self.shiftDown):
+            CurrentGlyph().deselect()
+        if clickCount > 1:
+            self._newAnchor(point)
+        else:
+            self.pStart = point
+            self.pEnd = None
+    
+    def mouseUp(self, point):
+        self.pEnd = point
+        self._getSelectedPoints()
+        self.pStart = None
+        self.pEnd = None
+    
+    def mouseDragged(self, point, delta):
+        self.pEnd = point
+        #self._getSelectedPoints()
+    
+    def draw(self, scale):
+        save()
+        strokeWidth(scale)
+        # draw the selection rectangle
+        if self.isDragging() and self.pStart and self.pEnd:
+            fill(None)
+            stroke(0.3, 0.9, 0.1, 0.9)
+            rect(self.pStart.x, self.pStart.y, self.pEnd.x - self.pStart.x, self.pEnd.y - self.pStart.y)
+        # mark selected points & anchors
+        s = 3 * scale
+        fill(0, 0, 1, 0.8)
+        stroke(0, 0, 0.75, 0.8)
+        # points
+        for p in CurrentGlyph().selection:
+            oval(p.x-s, p.y-s, s*2, s*2)
+        # anchors
+        for a in CurrentGlyph().anchors:
+            if a.selected:
+                oval(a.x-s, a.y-s, s*2, s*2)
+        restore()
+        
+installTool(AnchorTool())

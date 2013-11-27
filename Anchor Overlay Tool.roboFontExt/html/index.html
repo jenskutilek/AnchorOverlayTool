@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Anchor Overlay Help</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<style type="text/css">
+			table {
+				border-collapse: collapse;
+			}
+			th, td {
+				text-align: left;
+				vertical-align: top;
+				font-weight: normal;
+				padding: 0.3em 0.5em;
+			}
+			th {
+				border-bottom: 1px solid #000;
+			}
+			td {
+				border-top: 1px solid #404040;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>Anchor Overlay</h1>
+		<p>Anchor Overlay displays a live preview of components, e.&nbsp;g. diacritical marks, that match the anchors in the current glyph, and allows you to position the anchors using outline points or font metrics as reference.</p>
+		
+		<h2>Interface</h2>
+		<p><img src="dialog.png" width="344" height="520" alt=""></p>
+		<p>The first list displays all anchors found in the current font. Check or uncheck the entries to set the visibility of all glyphs attached to these anchors globally.</p>
+		<p>Select an entry in the first list to display the corresponding base and mark glyphs in the lower left and right lists.</p>
+		<p>Uncheck any entry in the lower lists to hide a mark or base glyph. For example, displaying only symmetrical mark glyphs makes it easier to find the correct horizontal position of a base anchor.</p>
+		<p>Double-click any entry in one of the lower lists to open it in the current glyph window.</p>
+		
+		<p>Uncheck «Show in preview mode» to hide the overlay while the Preview key is pressed.</p>
+		<p>Uncheck «Show anchors» to hide anchors themselves in the glyph window.</p>
+		
+		<p>Visibility settings are saved for each anchor and glyph name. Find and remove the corresponding entries in the <tt>preferences.plist</tt> file in your RoboFont plugins folder in case you need to reset it completely.</p>
+		
+		<h2>Naming Conventions for Anchors</h2>
+		<p>An anchor will overlay all glyphs which contain a matching anchor, i.&nbsp;e. its name is that of the base anchor prefixed with an underscore.</p>
+		<p>Example: If your current glyph contains a base anchor called <tt>topLC</tt>, all glyphs that contain a mark anchor called <tt>_topLC</tt> will be previewed at the base anchor position.</p>
+		<p>Anchor names must be unique per glyph. Anchor Overlay will print a warning in the Output window if duplicate anchor names are found in the same glyph.</p>
+		
+		<h2>Adding Anchors</h2>
+		<p>Double-click in the glyph window to add an anchor. The anchor will be automatically named depending on the clicked position (left, center, right, top, bottom). If an anchor already exists in the clicked part of the glyph, the suffix «Attach» will be added to the name. Any additional double-clicks will be ignored.</p>
+		
+		<h2>Aligning Anchors</h2>
+		<p><img src="align.png" width="408" height="402" alt=""></p>
+		<p>Select the points you want to use as reference, then hold the Shift key while clicking the anchors that you want to align.</p>
+		<table>
+			<tr>
+				<th>Button</th>
+				<th>Shortcut</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>Points&nbsp;X</td>
+				<td>shift-X</td>
+				<td>Center the selected anchors horizontally between the leftmost and rightmost of the selected points. If no points are selected, center the selected anchors between left and right sidebearing.</td>
+			</tr>
+			<tr>
+				<td>Points&nbsp;Y</td>
+				<td>shift-Y</td>
+				<td>Center the selected anchors vertically between the bottommost and topmost of the selected points. If no points are selected, center the selected anchors relative to the cap height.</td>
+			</tr>
+			<tr>
+				<td>base</td>
+				<td></td>
+				<td>Move the selected anchors vertically to the base line.</td>
+			</tr>
+			<tr>
+				<td>x</td>
+				<td></td>
+				<td>Move the selected anchors vertically to the x-height.</td>
+			</tr>
+			<tr>
+				<td>cap</td>
+				<td></td>
+				<td>Move the selected anchors vertically to the cap height.</td>
+			</tr>
+		</table>
+		
+		<p>Use the arrow keys to move selected anchors by 10 font units. Hold the shift key to change the distance to 5 units or the option key for 1 unit.</p>
+		
+		<h2>Known Issues</h2>
+		<p>The Anchor Overlay tool must be activated after the font has been opened. It currently doesn’t pick up a change of the current font.</p>
+		<p>When you move base anchors, they will be correctly previewed in the current glyph window, but not when you edit the corresponding mark anchor. This is typically only an issue if you edit base and mark glyphs without changing tools inbetween. Activate the Edit tool and then go back to the Anchor Overlay tool to update the anchor positions.</p>
+		<p>A feature that would help automatically add anchors to all glyphs is not yet implemented.</p>
+		<hr>
+		<p>Anchor Overlay is © 2013 by Jens Kutilek.</p>
+	</body>
+</html>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>addToMenu</key>
+	<array>
+		<dict>
+			<key>path</key>
+			<string>AnchorOverlay.py</string>
+			<key>preferredName</key>
+			<string>Install Anchor Overlay Tool</string>
+			<key>shortKey</key>
+			<string></string>
+		</dict>
+		<dict>
+			<key>path</key>
+			<string>RecomposeSelected.py</string>
+			<key>preferredName</key>
+			<string>Recompose Selected Glyphs</string>
+			<key>shortKey</key>
+			<string>r</string>
+		</dict>
+	</array>
+	<key>developer</key>
+	<string>Jens Kutilek</string>
+	<key>developerURL</key>
+	<string>http://www.fontfont.com/</string>
+	<key>html</key>
+	<true/>
+	<key>launchAtStartUp</key>
+	<integer>1</integer>
+	<key>mainScript</key>
+	<string>AnchorOverlay.py</string>
+	<key>name</key>
+	<string>Anchor Overlay Tool</string>
+	<key>requiresVersionMajor</key>
+	<string>1</string>
+	<key>requiresVersionMinor</key>
+	<string>4</string>
+	<key>timeStamp</key>
+	<real>1383822815.0207976</real>
+	<key>version</key>
+	<string>0.3</string>
+</dict>
+</plist>

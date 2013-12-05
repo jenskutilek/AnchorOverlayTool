@@ -209,7 +209,7 @@ class AnchorOverlay(BaseWindowController):
         self.w = vanilla.FloatingWindow((170, 490), "Anchor Overlay", closable=False)
         
         y = 10
-        self.w.showAnchors_label = vanilla.TextBox((10, y, -10, 20), "Show parts for these anchors:", sizeStyle="small")
+        self.w.showAnchors_label = vanilla.TextBox((10, y, -10, 20), "Show anchors:", sizeStyle="small")
         y += 25
         self.w.showAnchors = vanilla.List((10, y, -10, 150),
             self.fontAnchors.getAnchorNames(),
@@ -627,4 +627,4 @@ class AnchorTool(BaseEventTool):
         restore()
         
 installTool(AnchorTool())
-print "Anchor Tool installed in tool bar."
+#print "Anchor Tool installed in tool bar."

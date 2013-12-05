@@ -2,6 +2,7 @@
 ## An extension for the RoboFont editor
 ## Requires RoboFont 1.4
 ## Version 0.1 by Jens Kutilek 2013-01-04
+## Version 0.2 by Jens Kutilek 2013-12-05
 ## Development has been partly sponsored by FontShop International GmbH
 ## http://www.fontfont.com/
 
@@ -16,11 +17,11 @@ from mojo.drawingTools import *
 from fontTools.pens.basePen import BasePen
 from fontTools.pens.transformPen import TransformPen
 from fontTools.misc.transform import Offset
-from mojo.UI import UpdateCurrentGlyphView, CurrentGlyphWindow, setGlyphViewDisplaySettings, getGlyphViewDisplaySettings
+from mojo.UI import UpdateCurrentGlyphView, CurrentGlyphWindow
 #from mojo.glyphPreview import GlyphPreview
 from mojo.extensions import getExtensionDefault, setExtensionDefault
 
-from lib.tools.drawing import strokePixelPath
+#from lib.tools.drawing import strokePixelPath
 
 # tool
 from mojo.events import BaseEventTool, installTool
@@ -184,13 +185,17 @@ class FontAnchors(object):
             else:
                 result.append({"Show": self.getVisibility("glyph", g, False), "Name": g})
         return result
+    
+    def selectGlyphsWithAnchorName(self, anchorName):
+        self.font.selection = self.getAnchoredGlyphNames(self.getMatchingAnchorName(anchorName))
+        #self.font.update()
 
 
 class AnchorOverlay(BaseWindowController):
     
     def __init__(self):
         self.fontAnchors = FontAnchors(CurrentFont())
-        self.showPreview = getExtensionDefault("%s.%s" %(extensionID, "preview"), True)
+        #self.showPreview = getExtensionDefault("%s.%s" %(extensionID, "preview"), True)
         
         columnDescriptions = [
             {"title": "Show",
@@ -201,7 +206,7 @@ class AnchorOverlay(BaseWindowController):
             "editable": False},
         ]
         
-        self.w = vanilla.FloatingWindow((330, 490), "Anchor Overlay", closable=False)
+        self.w = vanilla.FloatingWindow((170, 490), "Anchor Overlay", closable=False)
         
         y = 10
         self.w.showAnchors_label = vanilla.TextBox((10, y, -10, 20), "Show parts for these anchors:", sizeStyle="small")
@@ -211,22 +216,13 @@ class AnchorOverlay(BaseWindowController):
             columnDescriptions=columnDescriptions,
             drawFocusRing=True,
             editCallback=self.updateAnchorVisibility,
+            doubleClickCallback=self.selectGlyphsWithAnchorName,
             selectionCallback=self.updateAnchoredGlyphsList,
             )
         y += 160
-        self.w.baseAnchors_label = vanilla.TextBox((10, y, 150, 20), "Show base glyphs:", sizeStyle="small")
-        self.w.markAnchors_label = vanilla.TextBox((170, y, 150, 20), "Show mark glyphs:", sizeStyle="small")
+        self.w.markAnchors_label = vanilla.TextBox((10, y, 150, 20), "Show mark glyphs:", sizeStyle="small")
         y += 25
-        self.w.baseAnchors = vanilla.List((10, y, 150, 180),
-            [], #self.fontAnchors.anchorGlyphs.keys(),
-            drawFocusRing=True,
-            columnDescriptions=columnDescriptions,
-            editCallback=self.updateGlyphVisibility,
-            doubleClickCallback=self.gotoGlyph,
-            allowsMultipleSelection=False,
-            allowsEmptySelection=False,
-        )
-        self.w.markAnchors = vanilla.List((170, y, 150, 180),
+        self.w.markAnchors = vanilla.List((10, y, 150, 180),
             [], #self.fontAnchors.anchorGlyphs.keys(),
             columnDescriptions=columnDescriptions,
             editCallback=self.updateMarkVisibility,
@@ -235,41 +231,41 @@ class AnchorOverlay(BaseWindowController):
             allowsEmptySelection=False,
         )
         y += 188
-        self.w.drawPreview = vanilla.CheckBox((10, y, -10, -10), "Show in preview mode",
-            callback=self.setShowPreview,
-            value=self.showPreview,
-            sizeStyle="small"
-        )
+        #self.w.drawPreview = vanilla.CheckBox((10, y, -10, -10), "Show in preview mode",
+        #    callback=self.setShowPreview,
+        #    value=self.showPreview,
+        #    sizeStyle="small"
+        #)
         
-        self.w.displayAnchors = vanilla.CheckBox((10, y+25, -10, -10), "Show anchors",
-            callback=self.setShowAnchors,
-            value=getGlyphViewDisplaySettings()["Anchors"],
-            sizeStyle="small"
-        )
+        #self.w.displayAnchors = vanilla.CheckBox((10, y+25, -10, -10), "Show anchors",
+        #    callback=self.setShowAnchors,
+        #    value=getGlyphViewDisplaySettings()["Anchors"],
+        #    sizeStyle="small"
+        #)
         
         y += 2
-        self.w.alignAnchors_label = vanilla.TextBox((170, y, -10, -10), "Align selected anchors:", sizeStyle="small")
+        self.w.alignAnchors_label = vanilla.TextBox((10, y, -10, -10), "Align selected anchors:", sizeStyle="small")
         
         y += 21
-        self.w.centerXButton = vanilla.Button((170, y , 72, 25), "Points X",
+        self.w.centerXButton = vanilla.Button((10, y , 72, 25), "Points X",
             callback=self.centerAnchorX,
             sizeStyle="small",
         )
-        self.w.centerYButton = vanilla.Button((248, y , 72, 25), "Points Y",
+        self.w.centerYButton = vanilla.Button((88, y , 72, 25), "Points Y",
             callback=self.centerAnchorY,
             sizeStyle="small",
         )
         
         y += 26
-        self.w.baselineButton = vanilla.Button((170, y , 46, 25), "base",
+        self.w.baselineButton = vanilla.Button((10, y , 46, 25), "base",
             callback=self.moveAnchorBaseline,
             sizeStyle="small",
         )
-        self.w.xheightButton = vanilla.Button((222, y , 46, 25), "x",
+        self.w.xheightButton = vanilla.Button((62, y , 46, 25), "x",
             callback=self.moveAnchorXheight,
             sizeStyle="small",
         )
-        self.w.capheightButton = vanilla.Button((274, y , 46, 25), "cap",
+        self.w.capheightButton = vanilla.Button((114, y , 46, 25), "cap",
             callback=self.moveAnchorCapheight,
             sizeStyle="small",
         )
@@ -317,7 +313,6 @@ class AnchorOverlay(BaseWindowController):
         selectedAnchorNames = []
         for i in sender.getSelection():
             selectedAnchorNames.append(self.fontAnchors.getAnchorNames()[i]["Name"])
-        self.w.baseAnchors.set(self.fontAnchors.getAnchoredGlyphNamesForList(selectedAnchorNames))
         self.w.markAnchors.set(self.fontAnchors.getAnchoredGlyphNamesForList(selectedAnchorNames, marks=True))
     
     def gotoGlyph(self, sender=None, glyph=None):
@@ -325,12 +320,16 @@ class AnchorOverlay(BaseWindowController):
         #print "Goto Glyph:", newGlyphName
         CurrentGlyphWindow().setGlyphByName(newGlyphName)
     
-    def setShowPreview(self, sender=None, glyph=None):
-        self.showPreview = sender.get()
+    def selectGlyphsWithAnchorName(self, sender=None):
+        anchorName = sender.get()[sender.getSelection()[0]]["Name"]
+        self.fontAnchors.selectGlyphsWithAnchorName(anchorName)
     
-    def setShowAnchors(self, sender=None, glyph=None):
-        showAnchors = sender.get()
-        setGlyphViewDisplaySettings({"Anchors": showAnchors})
+    #def setShowPreview(self, sender=None, glyph=None):
+    #    self.showPreview = sender.get()
+    
+    #def setShowAnchors(self, sender=None, glyph=None):
+    #    showAnchors = sender.get()
+    #    setGlyphViewDisplaySettings({"Anchors": showAnchors})
     
     # Drawing helpers
     
@@ -436,7 +435,7 @@ class AnchorOverlay(BaseWindowController):
     
     def glyphChangedPreview(self, info):
         g = info["glyph"]
-        if (g is not None) and self.showPreview:
+        if g is not None:
             if len(g.anchors) > 0:
                 self.drawAnchoredGlyphs(g, preview=True)
     
@@ -468,7 +467,7 @@ class AnchorOverlay(BaseWindowController):
     def windowCloseCallback(self, sender):
         self.removeObservers()
         setExtensionDefault("%s.%s" % (extensionID, "hide"), self.fontAnchors.hideLists)
-        setExtensionDefault("%s.%s" % (extensionID, "preview"), self.showPreview)
+        #setExtensionDefault("%s.%s" % (extensionID, "preview"), self.showPreview)
         super(AnchorOverlay, self).windowCloseCallback(sender)
         UpdateCurrentGlyphView()
 
@@ -628,3 +627,4 @@ class AnchorTool(BaseEventTool):
         restore()
         
 installTool(AnchorTool())
+print "Anchor Tool installed in tool bar."

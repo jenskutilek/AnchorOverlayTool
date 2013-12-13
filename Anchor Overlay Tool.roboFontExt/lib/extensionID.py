@@ -1,0 +1,1 @@
+extensionID = "com.fontfont.anchorOverlay"

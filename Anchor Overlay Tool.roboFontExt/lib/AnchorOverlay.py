@@ -13,55 +13,20 @@ from AppKit import NSColor
 from defconAppKit.windows.baseWindow import BaseWindowController
 
 from mojo.events import addObserver, removeObserver
-from mojo.drawingTools import *
-from fontTools.pens.basePen import BasePen
-from fontTools.pens.transformPen import TransformPen
+from mojo.drawingTools import fill, oval, rect, restore, save, stroke, strokeWidth
 from fontTools.misc.transform import Offset
+from lib.tools import bezierTools # for single point click selection
 from mojo.UI import UpdateCurrentGlyphView, CurrentGlyphWindow
-#from mojo.glyphPreview import GlyphPreview
 from mojo.extensions import getExtensionDefault, setExtensionDefault
 
-#from lib.tools.drawing import strokePixelPath
-
 # tool
+from extensionID import extensionID
 from mojo.events import BaseEventTool, installTool
+from MojoDrawingToolsPen import MojoDrawingToolsPen
 
-extensionID = "com.fontfont.anchorOverlay"
 
 def roundCoordinates(coordinatesTuple):
     return (int(round(coordinatesTuple[0])), int(round(coordinatesTuple[1])))
-
-
-class MojoDrawingToolsPen(BasePen):
-    def __init__(self, g, f):
-        BasePen.__init__(self, None)
-        self.g = g
-        self.glyphSet = f
-        self.__currentPoint = None
-        newPath()
-    
-    def _moveTo(self, pt):
-        moveTo(pt)
-    
-    def _lineTo(self, pt):
-        lineTo(pt)
-    
-    def _curveToOne(self, pt1, pt2, pt3):
-        curveTo(pt1, pt2, pt3)
-    
-    def _closePath(self):
-        closePath()
-    
-    def _endPath(self):
-        closePath()
-    
-    def draw(self):
-        drawPath()
-    
-    def addComponent(self, baseName, transformation):
-        glyph = self.glyphSet[baseName]
-        tPen = TransformPen(self, transformation)
-        glyph.draw(tPen)
 
 
 class FontAnchors(object):
@@ -195,7 +160,7 @@ class AnchorOverlay(BaseWindowController):
     
     def __init__(self):
         self.fontAnchors = FontAnchors(CurrentFont())
-        #self.showPreview = getExtensionDefault("%s.%s" %(extensionID, "preview"), True)
+        self.showPreview = getExtensionDefault("%s.%s" %(extensionID, "preview"), True)
         
         columnDescriptions = [
             {"title": "Show",
@@ -435,7 +400,7 @@ class AnchorOverlay(BaseWindowController):
     
     def glyphChangedPreview(self, info):
         g = info["glyph"]
-        if g is not None:
+        if (g is not None) and self.showPreview:
             if len(g.anchors) > 0:
                 self.drawAnchoredGlyphs(g, preview=True)
     
@@ -467,7 +432,7 @@ class AnchorOverlay(BaseWindowController):
     def windowCloseCallback(self, sender):
         self.removeObservers()
         setExtensionDefault("%s.%s" % (extensionID, "hide"), self.fontAnchors.hideLists)
-        #setExtensionDefault("%s.%s" % (extensionID, "preview"), self.showPreview)
+        setExtensionDefault("%s.%s" % (extensionID, "preview"), self.showPreview)
         super(AnchorOverlay, self).windowCloseCallback(sender)
         UpdateCurrentGlyphView()
 
@@ -490,6 +455,7 @@ class AnchorTool(BaseEventTool):
     def setup(self):
         self.pStart = None
         self.pEnd = None
+        self._selectedMouseDownPoint = None
     
     def getToolbarIcon(self):
         return toolbarIcon
@@ -572,34 +538,43 @@ class AnchorTool(BaseEventTool):
     def _getSelectedPoints(self):
         if self.pStart and self.pEnd:
             box = self._normalizeBox(self.pStart, self.pEnd)
-            for anchor in CurrentGlyph().anchors:
-                if pointInRect((anchor.x, anchor.y), box):
-                    anchor.selected = True
-                else:
-                    if not(self.shiftDown):
-                        anchor.selected = False
-            for contour in CurrentGlyph():
-                for s in contour.segments:
-                    if pointInRect((s.points[-1].x, s.points[-1].y), box):
-                        s.points[-1].selected = True
-                    else:
-                        if not(self.shiftDown):
-                            s.points[-1].selected = False
+            for contour in self._glyph:
+                for p in contour.onCurvePoints:
+                    if pointInRect((p.x, p.y), box):
+                        self.selection.addPoint(p, self.shiftDown, contour=contour)
+                        self._selectedMouseDownPoint = (p.x, p.y)
+                for anchor in self._glyph.anchors:
+                    if pointInRect((anchor.x, anchor.y), box):
+                        self.selection.addAnchor(anchor, self.shiftDown)
+                        self._selectedMouseDownPoint = (anchor.x, anchor.y)
     
     def mouseDown(self, point, clickCount):
         if not(self.shiftDown):
-            CurrentGlyph().deselect()
+            self.selection.resetSelection()
         if clickCount > 1:
             self._newAnchor(point)
         else:
             self.pStart = point
             self.pEnd = None
+            s = self._view.getGlyphViewOnCurvePointsSize(minSize=7)
+            for contour in self._glyph:
+                for p in contour.onCurvePoints:
+                    if bezierTools.distanceFromPointToPoint(p, point) < s:
+                        self.selection.addPoint(p, self.shiftDown, contour=contour)
+                        self._selectedMouseDownPoint = (p.x, p.y)
+                        return
+                for anchor in self._glyph.anchors:
+                    if bezierTools.distanceFromPointToPoint(anchor, point) < s:
+                        self.selection.addAnchor(anchor, self.shiftDown)
+                        self._selectedMouseDownPoint = (anchor.x, anchor.y)
+                        return
     
     def mouseUp(self, point):
         self.pEnd = point
         self._getSelectedPoints()
         self.pStart = None
         self.pEnd = None
+        self._selectedMouseDownPoint = None
     
     def mouseDragged(self, point, delta):
         self.pEnd = point

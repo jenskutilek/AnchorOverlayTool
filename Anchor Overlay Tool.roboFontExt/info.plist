@@ -20,6 +20,14 @@
 			<key>shortKey</key>
 			<string>r</string>
 		</dict>
+		<dict>
+			<key>path</key>
+			<string>settings.py</string>
+			<key>preferredName</key>
+			<string>Settings...</string>
+			<key>shortKey</key>
+			<string></string>
+		</dict>
 	</array>
 	<key>developer</key>
 	<string>Jens Kutilek</string>

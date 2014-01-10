@@ -8,7 +8,7 @@
 
 import vanilla
 
-from AppKit import NSColor
+from AppKit import NSColor, NSBezierPath
 
 from defconAppKit.windows.baseWindow import BaseWindowController
 
@@ -16,6 +16,7 @@ from mojo.events import addObserver, removeObserver
 from mojo.drawingTools import fill, oval, rect, restore, save, stroke, strokeWidth
 from fontTools.misc.transform import Offset
 from lib.tools import bezierTools # for single point click selection
+from lib.tools.defaults import getDefaultColor # for drawing the selection marquee
 from mojo.UI import UpdateCurrentGlyphView, CurrentGlyphWindow
 from mojo.extensions import getExtensionDefault, setExtensionDefault
 
@@ -581,25 +582,15 @@ class AnchorTool(BaseEventTool):
         #self._getSelectedPoints()
     
     def draw(self, scale):
-        save()
-        strokeWidth(scale)
-        # draw the selection rectangle
         if self.isDragging() and self.pStart and self.pEnd:
-            fill(None)
-            stroke(0.3, 0.9, 0.1, 0.9)
-            rect(self.pStart.x, self.pStart.y, self.pEnd.x - self.pStart.x, self.pEnd.y - self.pStart.y)
-        # mark selected points & anchors
-        s = 3 * scale
-        fill(0, 0, 1, 0.8)
-        stroke(0, 0, 0.75, 0.8)
-        # points
-        for p in CurrentGlyph().selection:
-            oval(p.x-s, p.y-s, s*2, s*2)
-        # anchors
-        for a in CurrentGlyph().anchors:
-            if a.selected:
-                oval(a.x-s, a.y-s, s*2, s*2)
-        restore()
+            r = self.getMarqueRect()
+            if r:
+                color = getDefaultColor('glyphViewSelectionMarqueColor')
+                color.set()
+                path = NSBezierPath.bezierPathWithRect_(r)
+                path.fill()
+            return
+        self.drawSelection(scale)
         
 installTool(AnchorTool())
 #print "Anchor Tool installed in tool bar."

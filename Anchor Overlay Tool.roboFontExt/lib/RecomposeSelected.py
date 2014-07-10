@@ -42,7 +42,7 @@ ligatureNames = ["fi", "fl", "dcaron", "lcaron", "IJ", "ij", "napostrophe", 'one
 ignoreAnchorNames = ["fi", "fl", "IJ", "ij", "napostrophe", 'onequarter', 'onehalf', 'threequarters', 'onethird', 'twothirds', 'uni2155', 'uni2156', 'uni2157', 'uni2158', 'uni2159', 'uni215A', 'oneeighth', 'threeeighths', 'fiveeighths', 'seveneighths', 'uni215F', 'uni2150', 'uni2151', 'uni2152', 'uni2189', 'percent', 'perthousand']
 
 for glyphname in f.selection:
-    isLigature = getBaseName(glyphname) in ligatureNames
+    isLigature = getBaseName(glyphname) in ligatureNames or "_" in getBaseName(glyphname)
     print "Recomposing '%s' ..." % glyphname
     f[glyphname].prepareUndo("Recompose /%s" % glyphname)
     if isLigature:
@@ -57,7 +57,7 @@ for glyphname in f.selection:
                 print "    Setting offset of base glyph to 0."
                 c.offset = (0, 0)
         else:
-            if getBaseName(glyphname) in ignoreAnchorNames:
+            if getBaseName(glyphname) in ignoreAnchorNames or "_" in getBaseName(glyphname):
                 # Put glyphs next to each other
                 d = (int(round(totalWidth)), 0)
                 if c.offset != d:

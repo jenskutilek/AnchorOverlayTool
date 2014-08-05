@@ -56,7 +56,6 @@ def repositionComponents(glyphname, font):
     glyph.appendGlyph(font[glyphname])
     
     baseGlyph = font[basename]
-    seenBaseGlyph = False
     
     totalWidth = 0
     clearAnchors(glyph)
@@ -64,18 +63,12 @@ def repositionComponents(glyphname, font):
     for i in range(len(font[glyphname].components)):
         c = font[glyphname].components[i]
         #print "\n  Component: %s" % (c.baseGlyph)
-        if c.baseGlyph == basename and not seenBaseGlyph:
-            if c.offset != (0, 0):
-                print "    Setting offset of base glyph to 0."
-                c.offset = (0, 0)
-            seenBaseGlyph = True
-        else:
-            if nameWithoutSuffix in ignoreAnchorNames or "_" in nameWithoutSuffix:
-                # Put glyphs next to each other
-                d = (int(round(totalWidth)), 0)
-                if c.offset != d:
-                    print "    Setting component offset to (%i, %i)." % d
-                    c.offset = d
+        if nameWithoutSuffix in ignoreAnchorNames or "_" in nameWithoutSuffix:
+            # Put glyphs next to each other
+            d = (int(round(totalWidth)), 0)
+            if c.offset != d:
+                print "    Setting component offset to (%i, %i)." % d
+                c.offset = d
         
         anchor_found = False    
         for mark_anchor in font[c.baseGlyph].anchors:

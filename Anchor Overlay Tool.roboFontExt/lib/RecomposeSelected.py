@@ -61,8 +61,6 @@ def repositionComponents(glyphname, font):
     totalWidth = 0
     clearAnchors(glyph)
     
-    # TODO: Do all operations on a temp glyph and compare afterwards
-    
     for i in range(len(font[glyphname].components)):
         c = font[glyphname].components[i]
         #print "\n  Component: %s" % (c.baseGlyph)

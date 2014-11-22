@@ -5,6 +5,7 @@ Also resets the metrics of the composite to those of the base glyph(s).
 Jens Kutilek
 Version 0.1: 2013-05-28
 Version 0.2: 2014-08-05 - Implemented chained accents positioning
+Version 0.3: 2014-11-22 - Bug fixes for ligatures
 """
 
 def getBaseName(glyphname):
@@ -60,50 +61,55 @@ def repositionComponents(glyphname, font):
     totalWidth = 0
     clearAnchors(glyph)
     
+    modified = False
+    
     for i in range(len(font[glyphname].components)):
         c = font[glyphname].components[i]
         #print "\n  Component: %s" % (c.baseGlyph)
         if nameWithoutSuffix in ignoreAnchorNames or "_" in nameWithoutSuffix:
             # Put glyphs next to each other
             d = (int(round(totalWidth)), 0)
+            print c.baseGlyph
             if c.offset != d:
+                modified = True
+                font[glyphname].prepareUndo("Reposition components in /%s" % glyphname)
                 print "    Setting component offset to (%i, %i)." % d
                 c.offset = d
-        
-        anchor_found = False    
-        for mark_anchor in font[c.baseGlyph].anchors:
-            if i == 0:
-                #print "  Add anchor from base glyph: '%s'" % mark_anchor.name
-                glyph.appendAnchor(mark_anchor.name, mark_anchor.position)
+        else:
+            anchor_found = False    
+            for mark_anchor in font[c.baseGlyph].anchors:
+                if i == 0:
+                    #print "  Add anchor from base glyph: '%s'" % mark_anchor.name
+                    glyph.appendAnchor(mark_anchor.name, mark_anchor.position)
 
-            base_anchor_name = getMatchingAnchorName(mark_anchor.name)
-            #print "    Looking for matching anchor for '%s': '%s' ..." % (
-            #    mark_anchor.name,
-            #    base_anchor_name,
-            #)
+                base_anchor_name = getMatchingAnchorName(mark_anchor.name)
+                #print "    Looking for matching anchor for '%s': '%s' ..." % (
+                #    mark_anchor.name,
+                #    base_anchor_name,
+                #)
             
-            for anchor in glyph.anchors:
-                if anchor.name == base_anchor_name:
-                    #print "        Process anchor: '%s'" % anchor
-                    d = (anchor.x - mark_anchor.x, anchor.y - mark_anchor.y)
-                    glyph.removeAnchor(anchor)
-                    #print "Move component %s -> %s" % (c.offset, d)
-                    if c.offset != d:
-                        c.offset = (int(round(d[0])), int(round(d[1])))
-                    for temp_anchor in font[c.baseGlyph].anchors:
-                        #print "          Append anchor: '%s'" % (temp_anchor.name)
-                        glyph.appendAnchor(temp_anchor.name, (int(round(temp_anchor.x + d[0])), int(round(temp_anchor.y + d[1]))))
-                    anchor_found = True
-                    #glyph.removeAnchor(anchor)
-                    break
-                else:
-                    pass
-                    #print "        Ignore anchor: '%s'" % anchor.name
-                    #glyph.removeAnchor(anchor)
-            if not anchor_found:
-                #print "    No matching anchor found, setting offset to (0, 0)."
-                if c.offset != (0, 0):
-                    c.offset = (0, 0)
+                for anchor in glyph.anchors:
+                    if anchor.name == base_anchor_name:
+                        #print "        Process anchor: '%s'" % anchor
+                        d = (anchor.x - mark_anchor.x, anchor.y - mark_anchor.y)
+                        glyph.removeAnchor(anchor)
+                        #print "Move component %s -> %s" % (c.offset, d)
+                        if c.offset != d:
+                            c.offset = (int(round(d[0])), int(round(d[1])))
+                        for temp_anchor in font[c.baseGlyph].anchors:
+                            #print "          Append anchor: '%s'" % (temp_anchor.name)
+                            glyph.appendAnchor(temp_anchor.name, (int(round(temp_anchor.x + d[0])), int(round(temp_anchor.y + d[1]))))
+                        anchor_found = True
+                        #glyph.removeAnchor(anchor)
+                        break
+                    else:
+                        pass
+                        #print "        Ignore anchor: '%s'" % anchor.name
+                        #glyph.removeAnchor(anchor)
+                if not anchor_found:
+                    #print "    No matching anchor found, setting offset to (0, 0)."
+                    if c.offset != (0, 0):
+                        c.offset = (0, 0)
         # Limit component depth for debugging purposes
         #if i == 2:
         #    break
@@ -116,27 +122,31 @@ def repositionComponents(glyphname, font):
         # set width of glyph from baseglyph
         w = baseGlyph.width
     
-    modified = False
     glyph.update()
     #clearAnchors(glyph)
     
     if w != font[glyphname].width:
         print "    Setting width from base glyph: %i -> %i." % (font[glyphname].width, w)
+        if not modified:
+            font[glyphname].prepareUndo("Reposition components in /%s" % glyphname)
         font[glyphname].width = w
-        modified = True
     
     for i in range(len(glyph.components)):
         c_ref = glyph.components[i]
         c_mod = font[glyphname].components[i]
         if c_ref.baseGlyph == c_mod.baseGlyph:
             if c_ref.offset != c_mod.offset:
+                if not modified:
+                    font[glyphname].prepareUndo("Reposition components in /%s" % glyphname)
                 print "    Move component '%s': %s -> %s." % (c_mod.baseGlyph, c_ref.offset, c_mod.offset)
                 c_ref.offset = c_mod.offset
                 modified = True
         else:
             print "    Unexpected ERROR: component order mismatch."
     if modified:
+        font[glyphname].performUndo()
         font[glyphname].update()
+        
         print "... component positions were modified."
     else:
         print "... everything is fine."
@@ -150,6 +160,4 @@ ignoreAnchorNames = ["uniFB00", "fi", "fl", "IJ", "ij", "napostrophe", 'onequart
 f = CurrentFont()
 
 for glyphname in f.selection:
-    f[glyphname].prepareUndo("Reposition components in /%s" % glyphname)
-    repositionComponents(glyphname, f)
-    f[glyphname].performUndo()
+    result = repositionComponents(glyphname, f)

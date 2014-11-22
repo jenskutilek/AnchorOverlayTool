@@ -69,7 +69,6 @@ def repositionComponents(glyphname, font):
         if nameWithoutSuffix in ignoreAnchorNames or "_" in nameWithoutSuffix:
             # Put glyphs next to each other
             d = (int(round(totalWidth)), 0)
-            print c.baseGlyph
             if c.offset != d:
                 modified = True
                 font[glyphname].prepareUndo("Reposition components in /%s" % glyphname)

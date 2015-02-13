@@ -6,9 +6,9 @@
 	<array>
 		<dict>
 			<key>path</key>
-			<string>AnchorOverlay.py</string>
+			<string>Compare Anchors CSV.py</string>
 			<key>preferredName</key>
-			<string>Install Anchor Overlay Tool</string>
+			<string>Export Anchor Table (CSV)</string>
 			<key>shortKey</key>
 			<string></string>
 		</dict>
@@ -20,19 +20,11 @@
 			<key>shortKey</key>
 			<string>r</string>
 		</dict>
-		<dict>
-			<key>path</key>
-			<string>settings.py</string>
-			<key>preferredName</key>
-			<string>Settings...</string>
-			<key>shortKey</key>
-			<string></string>
-		</dict>
 	</array>
 	<key>developer</key>
 	<string>Jens Kutilek</string>
 	<key>developerURL</key>
-	<string>http://www.fontfont.com/</string>
+	<string>http://www.kutilek.de/</string>
 	<key>html</key>
 	<true/>
 	<key>launchAtStartUp</key>

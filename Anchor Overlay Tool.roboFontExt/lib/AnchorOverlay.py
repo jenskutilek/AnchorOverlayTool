@@ -1,12 +1,15 @@
 ## Anchor Overlay
 ## An extension for the RoboFont editor
-## Requires RoboFont 1.4
+## Requires RoboFont 1.6
 ## Version 0.1 by Jens Kutilek 2013-01-04
 ## Version 0.2 by Jens Kutilek 2013-12-05
-## Development has been partly sponsored by FontShop International GmbH
+## Version 0.4 by Jens Kutilek 2014-02-13
+## Development has been partly sponsored by FontShop International GmbH - R.I.P.
 ## http://www.fontfont.com/
 
 import vanilla
+
+#from time import time
 
 from AppKit import NSColor, NSBezierPath
 
@@ -18,12 +21,10 @@ from fontTools.misc.transform import Offset
 from lib.tools import bezierTools # for single point click selection
 from lib.tools.defaults import getDefaultColor # for drawing the selection marquee
 from mojo.UI import UpdateCurrentGlyphView, CurrentGlyphWindow
+from mojo.drawingTools import drawGlyph, restore, save, translate
 from mojo.extensions import getExtensionDefault, setExtensionDefault
 
-# tool
 from extensionID import extensionID
-from mojo.events import BaseEventTool, installTool
-from MojoDrawingToolsPen import MojoDrawingToolsPen
 
 
 def roundCoordinates(coordinatesTuple):
@@ -239,9 +240,6 @@ class AnchorOverlay(BaseWindowController):
         self.setUpBaseWindowBehavior()
         self.addObservers()
         
-        #self.updateAnchoredGlyphsList()
-        if CurrentGlyph():
-            self.drawAnchoredGlyphs(CurrentGlyph())
         self.w.showAnchors.setSelection([])
         self.w.open()
     
@@ -394,12 +392,14 @@ class AnchorOverlay(BaseWindowController):
         g.performUndo()
     
     def glyphChanged(self, info):
+        #print "  * glyphChanged"
         g = info["glyph"]
         if g is not None:
             if len(g.anchors) > 0:
                 self.drawAnchoredGlyphs(g)
     
     def glyphChangedPreview(self, info):
+        #print "  * glyphChangedPreview"
         g = info["glyph"]
         if (g is not None) and self.showPreview:
             if len(g.anchors) > 0:
@@ -412,23 +412,34 @@ class AnchorOverlay(BaseWindowController):
         else:
             self.setFill()
         
+        #start = time()
+        
+        dbx = 0
+        dby = 0
+        
         for a in glyph.anchors:
-            if self.fontAnchors.getVisibility("anchor", a.name):
-                glyphsToDraw = self.fontAnchors.getAnchoredGlyphNames(a.name)
+            anchor_name = a.name
+            #print "     %s" % anchor_name
+            if self.fontAnchors.getVisibility("anchor", anchor_name):
+                glyphsToDraw = self.fontAnchors.getAnchoredGlyphNames(anchor_name)
                 # get translation for base anchor
-                db = (a.x, a.y)
-                g = RGlyph()
+                dbx = a.x
+                dby = a.y
+                save()
                 for gn in glyphsToDraw:
-                    if (a.name[0] != "_" and self.fontAnchors.getVisibility("mark", gn, False)) or (a.name[0] == "_" and self.fontAnchors.getVisibility("glyph", gn, False)):
+                    if (anchor_name[0] != "_" and self.fontAnchors.getVisibility("mark", gn, False)) or (anchor_name[0] == "_" and self.fontAnchors.getVisibility("glyph", gn, False)):
                         # get translation for current mark anchor
-                        dm = self.fontAnchors.anchorPositions[gn, self.fontAnchors.getMatchingAnchorName(a.name)]
-                        #d = (db[0] - dm[0], db[1] - dm[1])
-                        mPen = MojoDrawingToolsPen(g, CurrentFont())
-                        mPen.addComponent(gn, Offset(db[0] - dm[0], db[1] - dm[1]))
-                        g.draw(mPen)
-                        mPen.draw()
-        UpdateCurrentGlyphView()
-            
+                        dmx, dmy = self.fontAnchors.anchorPositions[gn, self.fontAnchors.getMatchingAnchorName(anchor_name)]
+                        x = dbx - dmx
+                        y = dby - dmy
+                        translate(x, y)
+                        drawGlyph(self.fontAnchors.font[gn])
+                        dbx = dmx
+                        dby = dmy
+                restore()
+
+        #stop = time()
+        #print "     Draw: %0.1f ms" % (1000 * (stop - start))
     
     def windowCloseCallback(self, sender):
         self.removeObservers()
@@ -442,6 +453,8 @@ class AnchorOverlay(BaseWindowController):
 from AppKit import NSImage
 from os.path import join, dirname, isfile
 from fontTools.misc.arrayTools import pointInRect
+from mojo.events import BaseEventTool, installTool
+
 
 iconpath = join(dirname(__file__), "toolbarToolsAnchor.pdf")
 
@@ -465,9 +478,11 @@ class AnchorTool(BaseEventTool):
         return "Anchor Tool"
     
     def becomeActive(self):
+        #print "becomeActive"
         self.anchorOverlayUI = AnchorOverlay()
     
     def becomeInactive(self):
+        #print "becomeInactive"
         self.anchorOverlayUI.windowCloseCallback(None)
         self.anchorOverlayUI.w.close()
     

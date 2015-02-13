@@ -158,5 +158,12 @@ ignoreAnchorNames = ["uniFB00", "fi", "fl", "IJ", "ij", "napostrophe", 'onequart
 
 f = CurrentFont()
 
-for glyphname in f.selection:
+glyphs = []
+
+if CurrentGlyph() is not None:
+    glyphs = [CurrentGlyph().name]
+elif f.selection:
+    glyphs = f.selection
+
+for glyphname in glyphs:
     result = repositionComponents(glyphname, f)

@@ -6,7 +6,66 @@ Jens Kutilek
 Version 0.1: 2013-05-28
 Version 0.2: 2014-08-05 - Implemented chained accents positioning
 Version 0.3: 2014-11-22 - Bug fixes for ligatures
+Version 0.4: 2016-02-03 - Support kerning when positioning ligature-style components
 """
+
+from re import compile, search
+
+class jkKernInfo(object):
+    
+    def __init__(self, font):
+        self.font = font
+        self.group_name_pattern = compile("^@MMK_*")
+        self.group_name_l_pattern = compile("^@MMK_L_*")
+        self.group_name_r_pattern = compile("^@MMK_R_*")
+        self._analyze_kerning()
+    
+    def is_kerning_group(self, name, side=None):
+        # Test if supplied name is a kerning group name
+        if side is None:
+            return self.group_name_pattern.search(name)
+        elif side == "l":
+            return self.group_name_l_pattern.search(name)
+        elif side == "r":
+            return self.group_name_r_pattern.search(name)
+        return False
+
+    
+    def _analyze_kerning(self):
+        self.kerning = self.font.kerning
+        self.group_info = {
+            "l": {},
+            "r": {},
+        }
+        for group_name, group_content in self.font.groups.items():
+            if self.is_kerning_group(group_name, "l"):
+                for glyph_name in group_content:
+                    self.group_info["l"][glyph_name] = group_name
+            if self.is_kerning_group(group_name, "r"):
+                for glyph_name in group_content:
+                    self.group_info["r"][glyph_name] = group_name
+    
+    def get_group_for_glyph(self, glyph_name, side):
+        group_name = self.group_info[side].get(glyph_name, None)
+        return group_name
+    
+    def getKernValue(self, left, right):
+        left_group = self.get_group_for_glyph(left, "l")
+        right_group = self.get_group_for_glyph(right, "r")
+        pair_value = self.kerning.get((left, right), None)
+        if pair_value is not None:
+            return pair_value
+        lg_value = self.kerning.get((left_group, right), None)
+        if lg_value is not None:
+            return lg_value
+        rg_value = self.kerning.get((left, right_group), None)
+        if rg_value is not None:
+            return rg_value
+        group_value = self.kerning.get((left_group, right_group), None)
+        if group_value is None:
+            group_value = 0
+        return group_value
+        
 
 def getBaseName(glyphname):
     if "." in glyphname and not(glyphname in [".notdef", ".null"]):
@@ -62,13 +121,20 @@ def repositionComponents(glyphname, font):
     clearAnchors(glyph)
     
     modified = False
+    prevComponentName = None
+    kerning = 0
     
     for i in range(len(font[glyphname].components)):
         c = font[glyphname].components[i]
         #print "\n  Component: %s" % (c.baseGlyph)
-        if nameWithoutSuffix in ignoreAnchorNames or "_" in nameWithoutSuffix:
+        if nameWithoutSuffix in ignoreAnchorNames or "_" in nameWithoutSuffix and not nameWithoutSuffix.endswith("comb"):
+            if prevComponentName is not None:
+                kerning = kern_info.getKernValue(prevComponentName, c.baseGlyph)
+                print "Kerning /%s/%s = %s" % (prevComponentName, c.baseGlyph, kerning)
+                if kerning is None:
+                    kerning = 0
             # Put glyphs next to each other
-            d = (int(round(totalWidth)), 0)
+            d = (int(round(totalWidth + kerning)), 0)
             if c.offset != d:
                 modified = True
                 font[glyphname].prepareUndo("Reposition components in /%s" % glyphname)
@@ -112,8 +178,9 @@ def repositionComponents(glyphname, font):
         # Limit component depth for debugging purposes
         #if i == 2:
         #    break
-        totalWidth += font[c.baseGlyph].width
+        totalWidth += font[c.baseGlyph].width + kerning
         font.update()
+        prevComponentName = c.baseGlyph
     if nameWithoutSuffix in ligatureNames or "_" in nameWithoutSuffix:
         # For ligatures, set width to width of all components combined
         w = totalWidth
@@ -152,7 +219,7 @@ def repositionComponents(glyphname, font):
     del glyph
         
 
-ligatureNames = ["uniFB00", "fi", "fl", "dcaron", "lcaron", "IJ", "ij", "napostrophe", 'onequarter', 'onehalf', 'threequarters', 'onethird', 'twothirds', 'uni2155', 'uni2156', 'uni2157', 'uni2158', 'uni2159', 'uni215A', 'oneeighth', 'threeeighths', 'fiveeighths', 'seveneighths', 'uni215F', 'uni2150', 'uni2151', 'uni2152', 'uni2189', 'percent', 'perthousand']
+ligatureNames = ["uniFB00", "fi", "fl", "dcaron", "lcaron", "IJ", "ij", "napostrophe", 'onequarter', 'onehalf', 'threequarters', 'onethird', 'twothirds', 'uni2155', 'uni2156', 'uni2157', 'uni2158', 'uni2159', 'uni215A', 'oneeighth', 'threeeighths', 'fiveeighths', 'seveneighths', 'uni215F', 'uni2150', 'uni2151', 'uni2152', 'uni2189', 'percent', 'perthousand', 'germandbls']
 
 ignoreAnchorNames = ["uniFB00", "fi", "fl", "IJ", "ij", "napostrophe", 'onequarter', 'onehalf', 'threequarters', 'onethird', 'twothirds', 'uni2155', 'uni2156', 'uni2157', 'uni2158', 'uni2159', 'uni215A', 'oneeighth', 'threeeighths', 'fiveeighths', 'seveneighths', 'uni215F', 'uni2150', 'uni2151', 'uni2152', 'uni2189', 'percent', 'perthousand']
 
@@ -164,6 +231,8 @@ if CurrentGlyph() is not None:
     glyphs = [CurrentGlyph().name]
 elif f.selection:
     glyphs = f.selection
+
+kern_info = jkKernInfo(f)
 
 for glyphname in glyphs:
     result = repositionComponents(glyphname, f)

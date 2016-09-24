@@ -1,1 +1,1 @@
-extensionID = "com.fontfont.anchorOverlay"
+extensionID = "de.kutilek.anchorOverlay"

@@ -41,5 +41,12 @@
 	<real>1423841444.0</real>
 	<key>version</key>
 	<string>0.4</string>
+	<key>com.robofontmechanic.Mechanic</key>
+	<dict>
+		<key>repository</key>
+		<string>jenskutilek/AnchorOverlayTool</string>
+		<key>summary</key>
+		<string>A tool for anchor placement, accent preview, and component positioning.</string>
+	</dict>
 </dict>
 </plist>

@@ -1,5 +1,5 @@
-AnchorOverlayTool
-=================
+Anchor Overlay Tool
+===================
 
 ![](screenshot.png)
 
@@ -10,5 +10,10 @@ Just another way to add anchors and preview accent positions in RoboFont. Instal
 
 Menu additions:
 
-* *Recompose Selected Glyphs* (ctrl-cmd-R): Reposition components in current or selected glyphs based on anchor positions
-* *Export Anchor Table (CSV)*: Export all anchor names and positions for open UFOs as CSV. This helps comparing across the family and finding missing anchors.
+* *Recompose Selected Glyphs* (ctrl-cmd-R): Reposition components in current or selected glyphs based on anchor positions.
+* *Export Anchor Table (CSV)*: Export all anchor names and positions for open UFOs as comma-separated text file. This helps comparing position consistency across the font family and noticing any missing anchors.
+
+Similar RoboFont extensions:
+
+* [Accentista](https://github.com/FontBureau/fbOpenTools/tree/master/Accentista) by David Jonathan Ross
+* [Adjust Anchors](https://github.com/adobe-type-tools/robofont-extensions) by Miguel Sousa

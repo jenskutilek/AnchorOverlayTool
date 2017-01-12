@@ -219,9 +219,11 @@ def repositionComponents(glyphname, font):
     del glyph
         
 
-ligatureNames = ["uniFB00", "fi", "fl", "uniFB01", "uniFB02", "uniFB03", "uniFB04", "uniFB05", "uniFB06", "dcaron", "lcaron", "IJ", "ij", "napostrophe", 'onequarter', 'onehalf', 'threequarters', 'onethird', 'twothirds', 'uni2155', 'uni2156', 'uni2157', 'uni2158', 'uni2159', 'uni215A', 'oneeighth', 'threeeighths', 'fiveeighths', 'seveneighths', 'uni215F', 'uni2150', 'uni2151', 'uni2152', 'uni2189', 'percent', 'perthousand', 'germandbls']
+ligatureNames = ["uniFB00", "fi", "fl", "uniFB01", "uniFB02", "uniFB03", "uniFB04", "uniFB05", "uniFB06", "dcaron", "lcaron", "IJ", "ij", "napostrophe", 'onequarter', 'onehalf', 'threequarters', 'onethird', 'twothirds', 'uni2155', 'uni2156', 'uni2157', 'uni2158', 'uni2159', 'uni215A', 'oneeighth', 'threeeighths', 'fiveeighths', 'seveneighths', 'uni215F', 'uni2150', 'uni2151', 'uni2152', 'uni2189', 'percent', 'perthousand', 'germandbls', "uni01C4", "uni01C5", "uni01C6", "uni01C7", "uni01C8", "uni01C9", "uni01CA", "uni01CB",
+"uni01CC",]
 
-ignoreAnchorNames = ["uniFB00", "fi", "fl", "uniFB01", "uniFB02", "uniFB03", "uniFB04", "uniFB05", "uniFB06", "IJ", "ij", "napostrophe", 'onequarter', 'onehalf', 'threequarters', 'onethird', 'twothirds', 'uni2155', 'uni2156', 'uni2157', 'uni2158', 'uni2159', 'uni215A', 'oneeighth', 'threeeighths', 'fiveeighths', 'seveneighths', 'uni215F', 'uni2150', 'uni2151', 'uni2152', 'uni2189', 'percent', 'perthousand']
+ignoreAnchorNames = ["uniFB00", "fi", "fl", "uniFB01", "uniFB02", "uniFB03", "uniFB04", "uniFB05", "uniFB06", "IJ", "ij", "napostrophe", 'onequarter', 'onehalf', 'threequarters', 'onethird', 'twothirds', 'uni2155', 'uni2156', 'uni2157', 'uni2158', 'uni2159', 'uni215A', 'oneeighth', 'threeeighths', 'fiveeighths', 'seveneighths', 'uni215F', 'uni2150', 'uni2151', 'uni2152', 'uni2189', 'percent', 'perthousand', "uni01C4", "uni01C5", "uni01C6", "uni01C7", "uni01C8", "uni01C9", "uni01CA", "uni01CB",
+"uni01CC",]
 
 f = CurrentFont()
 

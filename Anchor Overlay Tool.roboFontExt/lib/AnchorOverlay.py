@@ -560,10 +560,10 @@ class AnchorTool(BaseEventTool):
                     if pointInRect((p.x, p.y), box):
                         self.selection.addPoint(p, self.shiftDown, contour=contour)
                         self._selectedMouseDownPoint = (p.x, p.y)
-                for anchor in self._glyph.anchors:
-                    if pointInRect((anchor.x, anchor.y), box):
-                        self.selection.addAnchor(anchor, self.shiftDown)
-                        self._selectedMouseDownPoint = (anchor.x, anchor.y)
+            for anchor in self._glyph.anchors:
+                if pointInRect((anchor.x, anchor.y), box):
+                    self.selection.addAnchor(anchor, self.shiftDown)
+                    self._selectedMouseDownPoint = (anchor.x, anchor.y)
     
     def mouseDown(self, point, clickCount):
         if not(self.shiftDown):
@@ -580,11 +580,11 @@ class AnchorTool(BaseEventTool):
                         self.selection.addPoint(p, self.shiftDown, contour=contour)
                         self._selectedMouseDownPoint = (p.x, p.y)
                         return
-                for anchor in self._glyph.anchors:
-                    if bezierTools.distanceFromPointToPoint(anchor, point) < s:
-                        self.selection.addAnchor(anchor, self.shiftDown)
-                        self._selectedMouseDownPoint = (anchor.x, anchor.y)
-                        return
+            for anchor in self._glyph.anchors:
+                if bezierTools.distanceFromPointToPoint(anchor, point) < s:
+                    self.selection.addAnchor(anchor, self.shiftDown)
+                    self._selectedMouseDownPoint = (anchor.x, anchor.y)
+                    return
     
     def mouseUp(self, point):
         self.pEnd = point

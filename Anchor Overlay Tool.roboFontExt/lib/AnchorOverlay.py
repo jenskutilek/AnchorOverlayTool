@@ -4,8 +4,8 @@
 ## Version 0.1 by Jens Kutilek 2013-01-04
 ## Version 0.2 by Jens Kutilek 2013-12-05
 ## Version 0.4 by Jens Kutilek 2014-02-13
-## Development has been partly sponsored by FontShop International GmbH - R.I.P.
-## http://www.fontfont.com/
+## Version 0.4 by Jens Kutilek 2014-02-13
+## Version 0.5.2: Jens Kutilek 2016-01-17
 
 import vanilla
 

@@ -19,7 +19,7 @@ from mojo.events import addObserver, removeObserver
 from mojo.drawingTools import fill, oval, rect, restore, save, stroke, strokeWidth
 from fontTools.misc.transform import Offset
 from lib.tools import bezierTools # for single point click selection
-from lib.tools.defaults import getDefault, getDefaultColor # for drawing the selection marquee
+from lib.tools.defaults import getDefaultColor # for using user-defined colours
 from mojo.UI import UpdateCurrentGlyphView, CurrentGlyphWindow
 from mojo.drawingTools import drawGlyph, restore, save, translate
 from mojo.extensions import getExtensionDefault, setExtensionDefault
@@ -163,7 +163,7 @@ class AnchorOverlay(BaseWindowController):
     def __init__(self):
         self.fontAnchors = FontAnchors(CurrentFont())
         self.showPreview = getExtensionDefault("%s.%s" %(extensionID, "preview"), True)
-        self.defaultPreviewColor = getDefault("glyphViewPreviewFillColor")
+        self.defaultPreviewColor = getDefaultColor("glyphViewPreviewFillColor")
         
         columnDescriptions = [
             {"title": "Show",
@@ -409,7 +409,12 @@ class AnchorOverlay(BaseWindowController):
     def drawAnchoredGlyphs(self, glyph, preview=False):
         self.setStroke(0)
         if preview:
-            self.setFill(self.defaultPreviewColor)
+            self.setFill((
+                self.defaultPreviewColor.redComponent(),
+                self.defaultPreviewColor.greenComponent(),
+                self.defaultPreviewColor.blueComponent(),
+                self.defaultPreviewColor.alphaComponent()
+            ))
         else:
             self.setFill()
         

@@ -163,7 +163,8 @@ class AnchorOverlay(BaseWindowController):
     def __init__(self):
         self.fontAnchors = FontAnchors(CurrentFont())
         self.showPreview = getExtensionDefault("%s.%s" %(extensionID, "preview"), True)
-        self.defaultPreviewColor = getDefaultColor("glyphViewPreviewFillColor")
+        nscolor = getDefaultColor("glyphViewPreviewFillColor")
+        self.preview_color = (nscolor.redComponent(), nscolor.greenComponent(), nscolor.blueComponent(), nscolor.alphaComponent())
         
         columnDescriptions = [
             {"title": "Show",
@@ -409,12 +410,7 @@ class AnchorOverlay(BaseWindowController):
     def drawAnchoredGlyphs(self, glyph, preview=False):
         self.setStroke(0)
         if preview:
-            self.setFill((
-                self.defaultPreviewColor.redComponent(),
-                self.defaultPreviewColor.greenComponent(),
-                self.defaultPreviewColor.blueComponent(),
-                self.defaultPreviewColor.alphaComponent()
-            ))
+            self.setFill(self.preview_color)
         else:
             self.setFill()
         

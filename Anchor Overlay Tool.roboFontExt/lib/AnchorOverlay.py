@@ -1,3 +1,4 @@
+from __future__ import division, print_function
 ## Anchor Overlay
 ## An extension for the RoboFont editor
 ## Requires RoboFont 1.6
@@ -6,6 +7,7 @@
 ## Version 0.4 by Jens Kutilek 2014-02-13
 ## Version 0.4 by Jens Kutilek 2014-02-13
 ## Version 0.5.2: Jens Kutilek 2016-01-17
+## Version 0.6.0: Jens Kutilek 2018-01-10
 
 import vanilla
 
@@ -63,9 +65,9 @@ class FontAnchors(object):
                         self.addAnchor(g, a.name, (a.x, a.y))
             #for a in sorted(self.anchorBaseMap.keys()):
             #    self.anchorNames.append({"Show": True, "Name": a})
-            #print "\nanchorGlyphs:", self.anchorGlyphs
-            #print "\nanchorPositions:", self.anchorPositions
-            #print
+            #print("\nanchorGlyphs:", self.anchorGlyphs)
+            #print("\nanchorPositions:", self.anchorPositions)
+            #print()
     
     def getVisibility(self, kind, name, includeMatching=True):
         hideList = self.hideLists[kind]
@@ -88,10 +90,10 @@ class FontAnchors(object):
     
     def addAnchor(self, glyph, name, position, addToGlyph=False):
         if len(name) == 0:
-            print "WARNING: anchor with empty name at (%i, %i) in glyph '%s', ignored." % (position[0], position[1], glyph.name)
+            print("WARNING: anchor with empty name at (%i, %i) in glyph '%s', ignored." % (position[0], position[1], glyph.name))
         else:
             if (glyph.name, name) in self.anchorPositions.keys():
-                print "WARNING: Duplicate anchor name '%s' requested in glyph '%s' when trying to add anchor. Ignored." % (name, glyph.name)
+                print("WARNING: Duplicate anchor name '%s' requested in glyph '%s' when trying to add anchor. Ignored." % (name, glyph.name))
             else:
                 self.anchorPositions[(glyph.name, name)] = position
                 if name in self.anchorGlyphs.keys():
@@ -131,7 +133,7 @@ class FontAnchors(object):
         return anchorNames
     
     def getAnchoredGlyphNames(self, anchorName):
-        #print "Looking up anchored glyphs for", anchorName
+        #print("Looking up anchored glyphs for", anchorName)
         targetAnchorName = self.getMatchingAnchorName(anchorName)
         if targetAnchorName in self.anchorGlyphs.keys():
             return self.anchorGlyphs[targetAnchorName]
@@ -145,7 +147,7 @@ class FontAnchors(object):
             if an in self.anchorGlyphs.keys():
                 anchoredGlyphs += (self.anchorGlyphs[an])
         result = []
-        #print "anchoredGlyphs:", anchoredGlyphs
+        #print("anchoredGlyphs:", anchoredGlyphs)
         for g in sorted(set(anchoredGlyphs)):
             if marks:
                 result.append({"Show": self.getVisibility("mark", g, False), "Name": g})
@@ -283,7 +285,7 @@ class AnchorOverlay(BaseWindowController):
     
     def gotoGlyph(self, sender=None, glyph=None):
         newGlyphName = sender.get()[sender.getSelection()[0]]["Name"]
-        #print "Goto Glyph:", newGlyphName
+        #print("Goto Glyph:", newGlyphName)
         CurrentGlyphWindow().setGlyphByName(newGlyphName)
     
     def selectGlyphsWithAnchorName(self, sender=None):
@@ -329,15 +331,15 @@ class AnchorOverlay(BaseWindowController):
         if len(glyph.selection) == 0:
             # no points selected, place anchor at glyph width or cap height center
             # TODO: x-height for lowercase?
-            #print "Ref: metrics"
+            #print("Ref: metrics")
             return roundCoordinates((glyph.width / 2, self.fontAnchors.font.info.capHeight / 2))
         elif len(glyph.selection) == 1:
             # one point is selected, return same
-            #print "Ref: point"
+            #print("Ref: point")
             return roundCoordinates((glyph.selection[0].x, glyph.selection[0].y))
         else:
             # more points are selected, find min/max and return center.
-            #print "Ref: bbox"
+            #print("Ref: bbox")
             ((minX, minY), (maxX, maxY)) = self._getBBox(glyph.selection)
             return roundCoordinates(((minX + maxX)/2, (minY + maxY)/2))
     
@@ -394,14 +396,14 @@ class AnchorOverlay(BaseWindowController):
         g.performUndo()
     
     def glyphChanged(self, info):
-        #print "  * glyphChanged"
+        #print("  * glyphChanged")
         g = info["glyph"]
         if g is not None:
             if len(g.anchors) > 0:
                 self.drawAnchoredGlyphs(g)
     
     def glyphChangedPreview(self, info):
-        #print "  * glyphChangedPreview"
+        #print("  * glyphChangedPreview")
         g = info["glyph"]
         if (g is not None) and self.showPreview:
             if len(g.anchors) > 0:
@@ -421,7 +423,7 @@ class AnchorOverlay(BaseWindowController):
         
         for a in glyph.anchors:
             anchor_name = a.name
-            #print "     %s" % anchor_name
+            #print("     %s" % anchor_name)
             if self.fontAnchors.getVisibility("anchor", anchor_name):
                 glyphsToDraw = self.fontAnchors.getAnchoredGlyphNames(anchor_name)
                 # get translation for base anchor
@@ -441,7 +443,7 @@ class AnchorOverlay(BaseWindowController):
                 restore()
 
         #stop = time()
-        #print "     Draw: %0.1f ms" % (1000 * (stop - start))
+        #print("     Draw: %0.1f ms" % (1000 * (stop - start)))
     
     def windowCloseCallback(self, sender):
         self.removeObservers()
@@ -464,7 +466,7 @@ if isfile(iconpath):
     toolbarIcon = NSImage.alloc().initByReferencingFile_(iconpath)
 else:
     toolbarIcon = None
-    print "Warning: Toolbar icon not found: <%s>" % iconpath
+    print("Warning: Toolbar icon not found: <%s>" % iconpath)
 
 class AnchorTool(BaseEventTool):
     
@@ -480,11 +482,11 @@ class AnchorTool(BaseEventTool):
         return "Anchor Tool"
     
     def becomeActive(self):
-        #print "becomeActive"
+        #print("becomeActive")
         self.anchorOverlayUI = AnchorOverlay()
     
     def becomeInactive(self):
-        #print "becomeInactive"
+        #print("becomeInactive")
         self.anchorOverlayUI.windowCloseCallback(None)
         self.anchorOverlayUI.w.close()
     
@@ -524,15 +526,15 @@ class AnchorTool(BaseEventTool):
             g.performUndo()
     
     def _guessAnchorName(self, glyph, p):
-        if p.x <= glyph.width/3:
+        if p.x <= glyph.width//3:
             horizontal = "Left"
-        elif p.x >= glyph.width * 2/3:
+        elif p.x >= glyph.width * 2//3:
             horizontal = "Right"
         else:
             horizontal = ""
-        if p.y <= glyph.box[2]/3:
+        if p.y <= glyph.box[2]//3:
             vertical = "bottom"
-        elif p.y >= glyph.box[2] * 2/3:
+        elif p.y >= glyph.box[2] * 2//3:
             vertical = "top"
         else:
             vertical = "center"
@@ -610,4 +612,4 @@ class AnchorTool(BaseEventTool):
         self.drawSelection(scale)
         
 installTool(AnchorTool())
-#print "Anchor Tool installed in tool bar."
+#print("Anchor Tool installed in tool bar.")

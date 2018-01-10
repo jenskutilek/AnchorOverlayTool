@@ -1,3 +1,4 @@
+from __future__ import division, print_function
 """
 Recompose selected glyphs, using anchor positions as reference for placement.
 Also resets the metrics of the composite to those of the base glyph(s).
@@ -91,7 +92,7 @@ def getBaseGlyphName(font, name):
         return baseGlyphCandidates[0]
     else:
         # TODO: plausibility check if the base glyph really is the first component.
-        #print baseGlyphCandidates
+        #print(baseGlyphCandidates)
         return baseGlyphCandidates[0]
 
 def clearAnchors(glyph):
@@ -105,9 +106,9 @@ def deleteAnchor(glyph, name, position):
             break
 
 def repositionComponents(glyphname, font):
-    print "Repositioning composites in '%s' ..." % glyphname
+    print("Repositioning composites in '%s' ..." % glyphname)
     basename = getBaseGlyphName(font, glyphname)
-    #print "    Base glyph is: %s" % basename
+    #print("    Base glyph is: %s" % basename)
     
     nameWithoutSuffix = getBaseName(glyphname)
     
@@ -126,11 +127,11 @@ def repositionComponents(glyphname, font):
     
     for i in range(len(font[glyphname].components)):
         c = font[glyphname].components[i]
-        #print "\n  Component: %s" % (c.baseGlyph)
+        #print("\n  Component: %s" % (c.baseGlyph))
         if nameWithoutSuffix in ignoreAnchorNames or "_" in nameWithoutSuffix and not nameWithoutSuffix.endswith("comb"):
             if prevComponentName is not None:
                 kerning = kern_info.getKernValue(prevComponentName, c.baseGlyph)
-                print "Kerning /%s/%s = %s" % (prevComponentName, c.baseGlyph, kerning)
+                print("Kerning /%s/%s = %s" % (prevComponentName, c.baseGlyph, kerning))
                 if kerning is None:
                     kerning = 0
             # Put glyphs next to each other
@@ -138,41 +139,41 @@ def repositionComponents(glyphname, font):
             if c.offset != d:
                 modified = True
                 font[glyphname].prepareUndo("Reposition components in /%s" % glyphname)
-                print "    Setting component offset to (%i, %i)." % d
+                print("    Setting component offset to (%i, %i)." % d)
                 c.offset = d
         else:
             anchor_found = False    
             for mark_anchor in font[c.baseGlyph].anchors:
                 if i == 0:
-                    #print "  Add anchor from base glyph: '%s'" % mark_anchor.name
+                    #print("  Add anchor from base glyph: '%s'" % mark_anchor.name)
                     glyph.appendAnchor(mark_anchor.name, mark_anchor.position)
 
                 base_anchor_name = getMatchingAnchorName(mark_anchor.name)
-                #print "    Looking for matching anchor for '%s': '%s' ..." % (
+                #print("    Looking for matching anchor for '%s': '%s' ..." % (
                 #    mark_anchor.name,
                 #    base_anchor_name,
-                #)
+                #))
             
                 for anchor in glyph.anchors:
                     if anchor.name == base_anchor_name:
-                        #print "        Process anchor: '%s'" % anchor
+                        #print("        Process anchor: '%s'" % anchor)
                         d = (anchor.x - mark_anchor.x, anchor.y - mark_anchor.y)
                         glyph.removeAnchor(anchor)
-                        #print "Move component %s -> %s" % (c.offset, d)
+                        #print("Move component %s -> %s" % (c.offset, d))
                         if c.offset != d:
                             c.offset = (int(round(d[0])), int(round(d[1])))
                         for temp_anchor in font[c.baseGlyph].anchors:
-                            #print "          Append anchor: '%s'" % (temp_anchor.name)
+                            #print("          Append anchor: '%s'" % (temp_anchor.name))
                             glyph.appendAnchor(temp_anchor.name, (int(round(temp_anchor.x + d[0])), int(round(temp_anchor.y + d[1]))))
                         anchor_found = True
                         #glyph.removeAnchor(anchor)
                         break
                     else:
                         pass
-                        #print "        Ignore anchor: '%s'" % anchor.name
+                        #print("        Ignore anchor: '%s'" % anchor.name)
                         #glyph.removeAnchor(anchor)
                 if not anchor_found:
-                    #print "    No matching anchor found, setting offset to (0, 0)."
+                    #print("    No matching anchor found, setting offset to (0, 0).")
                     if c.offset != (0, 0):
                         c.offset = (0, 0)
         # Limit component depth for debugging purposes
@@ -192,7 +193,7 @@ def repositionComponents(glyphname, font):
     #clearAnchors(glyph)
     
     if w != font[glyphname].width:
-        print "    Setting width from base glyph: %i -> %i." % (font[glyphname].width, w)
+        print("    Setting width from base glyph: %i -> %i." % (font[glyphname].width, w))
         if not modified:
             font[glyphname].prepareUndo("Reposition components in /%s" % glyphname)
         font[glyphname].width = w
@@ -204,18 +205,18 @@ def repositionComponents(glyphname, font):
             if c_ref.offset != c_mod.offset:
                 if not modified:
                     font[glyphname].prepareUndo("Reposition components in /%s" % glyphname)
-                print "    Move component '%s': %s -> %s." % (c_mod.baseGlyph, c_ref.offset, c_mod.offset)
+                print("    Move component '%s': %s -> %s." % (c_mod.baseGlyph, c_ref.offset, c_mod.offset))
                 c_ref.offset = c_mod.offset
                 modified = True
         else:
-            print "    Unexpected ERROR: component order mismatch."
+            print("    Unexpected ERROR: component order mismatch.")
     if modified:
         font[glyphname].performUndo()
         font[glyphname].update()
         
-        print "... component positions were modified."
+        print("... component positions were modified.")
     else:
-        print "... everything is fine."
+        print("... everything is fine.")
     del glyph
         
 

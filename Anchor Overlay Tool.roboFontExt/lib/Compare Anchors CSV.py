@@ -1,3 +1,4 @@
+from __future__ import division, print_function
 from os.path import expanduser, join
 from re import compile, search
 
@@ -25,7 +26,7 @@ class AnchorComparison(object):
     def get_anchors_by_name(self, glyph):
         anchor_names = [a.name for a in glyph.anchors]
         if len(anchor_names) != len(set(anchor_names)):
-            print "  WARNING: Duplicate anchor name in %s" % glyph.name
+            print("  WARNING: Duplicate anchor name in %s" % glyph.name)
         return {a.name: (a.x, a.y) for a in glyph.anchors}
     
     def get_comparison_csv(self):
@@ -58,9 +59,9 @@ class AnchorComparison(object):
             csv = open(path, "wb")
             csv.write(self.get_comparison_csv())
             csv.close()
-            print "Anchor table written to '%s'." % path
+            print("Anchor table written to '%s'." % path)
         else:
-            print "There are no open fonts."
+            print("There are no open fonts.")
     
 ac = AnchorComparison(AllFonts())
 ac.save_comparison_csv()

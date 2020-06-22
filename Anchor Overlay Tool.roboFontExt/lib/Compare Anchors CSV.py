@@ -10,25 +10,25 @@ class AnchorComparison(object):
             fonts.append((f.info.openTypeOS2WeightClass, f))
         fonts.sort(key=lambda i: i[0])
         self.fonts = [f[1] for f in fonts]
-    
+
     def get_global_glyph_list(self):
         gl = []
         for f in self.fonts:
             gl.extend(f.glyphOrder)
         return sorted(list(set(gl)))
-    
+
     def get_global_anchor_list(self, glyph_name):
         al = []
         for f in self.fonts:
             al.extend([a.name for a in f[glyph_name].anchors])
         return sorted(list(set(al)))
-    
+
     def get_anchors_by_name(self, glyph):
         anchor_names = [a.name for a in glyph.anchors]
         if len(anchor_names) != len(set(anchor_names)):
             print("  WARNING: Duplicate anchor name in %s" % glyph.name)
         return {a.name: (a.x, a.y) for a in glyph.anchors}
-    
+
     def get_comparison_csv(self):
         csv = 'Glyph;Anchor;'
         for i in range(len(self.fonts)):
@@ -51,7 +51,7 @@ class AnchorComparison(object):
                         csv += '(no glyph);'
                 csv += "\n"
         return csv
-    
+
     def save_comparison_csv(self, path=None):
         if len(self.fonts) > 0:
             if not path:
@@ -61,6 +61,6 @@ class AnchorComparison(object):
             print("Anchor table written to '%s'." % path)
         else:
             print("There are no open fonts.")
-    
+
 ac = AnchorComparison(AllFonts())
 ac.save_comparison_csv()

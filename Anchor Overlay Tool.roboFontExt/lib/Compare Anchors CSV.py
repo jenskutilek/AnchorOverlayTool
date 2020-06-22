@@ -56,7 +56,7 @@ class AnchorComparison(object):
         if len(self.fonts) > 0:
             if not path:
                 path = join(expanduser("~"), "Documents", "%s_Anchor_Comparison.csv" % self.fonts[0].info.familyName)
-            csv = open(path, "wb")
+            csv = open(path, "w")
             csv.write(self.get_comparison_csv())
             csv.close()
             print("Anchor table written to '%s'." % path)

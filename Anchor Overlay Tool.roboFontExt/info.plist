@@ -24,13 +24,13 @@
 	<key>developer</key>
 	<string>Jens Kutilek</string>
 	<key>developerURL</key>
-	<string>http://www.kutilek.de/</string>
+	<string>https://www.kutilek.de/</string>
 	<key>html</key>
 	<true/>
 	<key>launchAtStartUp</key>
 	<integer>1</integer>
 	<key>mainScript</key>
-	<string>AnchorOverlay.py</string>
+	<string>install.py</string>
 	<key>name</key>
 	<string>Anchor Overlay Tool</string>
 	<key>requiresVersionMajor</key>
@@ -40,7 +40,7 @@
 	<key>timeStamp</key>
 	<real>1592842876.0</real>
 	<key>version</key>
-	<string>0.7.0</string>
+	<string>0.8.0</string>
 	<key>com.robofontmechanic.Mechanic</key>
 	<dict>
 		<key>repository</key>
